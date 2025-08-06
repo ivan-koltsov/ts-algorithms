@@ -12,6 +12,11 @@ export { TimSort } from './algorithms/timSort';
 export { IntroSort } from './algorithms/introSort';
 export { RadixSort } from './algorithms/radixSort';
 
+// Search algorithms
+export { Search } from './algorithms/search';
+export { HashTable, HashSet, HashMap } from './algorithms/hashTable';
+export { BinarySearchTree, AVLTree, BTree } from './algorithms/treeSearch';
+
 // Main sorting class that provides a unified interface
 import { AlgorithmType, SortOptions, SortResult, AlgorithmConfig } from './types';
 import { QuickSort } from './algorithms/quickSort';
@@ -199,5 +204,136 @@ export class Sort {
   }
 }
 
-// Export the main Sort class as default
-export default Sort; 
+/**
+ * Main search class that provides a unified interface for all search algorithms
+ */
+export class SearchAlgorithms {
+  /**
+   * Search in an array using the most appropriate algorithm
+   */
+  static search<T>(
+    arr: T[],
+    target: T,
+    options: SortOptions<T> = {}
+  ) {
+    // For sorted arrays, use binary search
+    if (this.isSorted(arr, options)) {
+      return Search.binarySearch(arr, target, options);
+    }
+    
+    // For small arrays, use linear search
+    if (arr.length <= 50) {
+      return Search.linearSearch(arr, target, options);
+    }
+    
+    // For large unsorted arrays, use hash table
+    return this.searchWithHashTable(arr, target, options);
+  }
+
+  /**
+   * Check if array is sorted
+   */
+  private static isSorted<T>(arr: T[], options: SortOptions<T> = {}): boolean {
+    if (arr.length <= 1) return true;
+    
+    const compare = options.compare || ((a, b) => (a as any) - (b as any));
+    
+    for (let i = 1; i < arr.length; i++) {
+      if (compare(arr[i - 1], arr[i]) > 0) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  /**
+   * Search using hash table
+   */
+  private static searchWithHashTable<T>(
+    arr: T[],
+    target: T,
+    options: SortOptions<T> = {}
+  ) {
+    const hashTable = new HashTable<T, number>();
+    
+    // Build hash table
+    for (let i = 0; i < arr.length; i++) {
+      hashTable.put(arr[i], i);
+    }
+    
+    // Search in hash table
+    const index = hashTable.get(target);
+    
+    if (index !== undefined) {
+      return {
+        index,
+        element: arr[index],
+        metrics: { comparisons: 1, swaps: 0, executionTime: 0 },
+        comparisons: 1,
+        executionTime: 0
+      };
+    }
+    
+    return {
+      index: -1,
+      metrics: { comparisons: 1, swaps: 0, executionTime: 0 },
+      comparisons: 1,
+      executionTime: 0
+    };
+  }
+
+  /**
+   * Get performance comparison of all search algorithms
+   */
+  static benchmark<T>(
+    arr: T[],
+    target: T,
+    options: SortOptions<T> = {}
+  ) {
+    const results: Record<string, any> = {};
+
+    // Test linear search
+    results.linearSearch = Search.linearSearch(arr, target, options);
+    
+    // Test binary search (only if sorted)
+    if (this.isSorted(arr, options)) {
+      results.binarySearch = Search.binarySearch(arr, target, options);
+      results.interpolationSearch = Search.interpolationSearch(arr, target, options);
+      results.exponentialSearch = Search.exponentialSearch(arr, target, options);
+      results.jumpSearch = Search.jumpSearch(arr, target, options);
+      results.fibonacciSearch = Search.fibonacciSearch(arr, target, options);
+      results.ternarySearch = Search.ternarySearch(arr, target, options);
+    }
+
+    return results;
+  }
+
+  /**
+   * Get the fastest search algorithm for the given data
+   */
+  static getFastest<T>(
+    arr: T[],
+    target: T,
+    options: SortOptions<T> = {}
+  ) {
+    const benchmark = this.benchmark(arr, target, options);
+    
+    let fastest = 'linearSearch';
+    let bestTime = Infinity;
+    
+    for (const [algorithm, result] of Object.entries(benchmark)) {
+      if (result.metrics.executionTime < bestTime) {
+        bestTime = result.metrics.executionTime;
+        fastest = algorithm;
+      }
+    }
+    
+    return {
+      algorithm: fastest,
+      result: benchmark[fastest]
+    };
+  }
+}
+
+// Export the main classes as default
+export default { Sort, SearchAlgorithms }; 
